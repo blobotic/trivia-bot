@@ -29,16 +29,16 @@ async def triviaapi(ctx, difficulty, category):
 		"e": "easy",
 		"m": "medium",
 		"h": "hard",
-		"al": "arts_and_literature",
-		"ft": "films_and_tv",
-		"fd": "food_and_drink",
-		"gk": "general_knowledge",
+		"art": "arts_and_literature",
+		"tv": "films_and_tv",
+		"food": "food_and_drink",
+		"gen": "general_knowledge",
 		"geo": "geography",
 		"hist": "history",
 		"mus": "music",
 		"sci": "science",
 		"soc": "society_and_culture",
-		"sports": "sport_and_culture"
+		"sport": "sport_and_culture"
 	}
 
 	if difficulty in replacements.keys():
@@ -58,10 +58,40 @@ async def triviaapi(ctx, difficulty, category):
 	return response.json()[0]
 
 
+@bot.command(name="triviaapi_help")
+async def triviaapihelp(ctx):
+	await ctx.send("```Difficulties:\n- easy/e\n- medium/m\n- hard/h\n\nCategories:\n- arts_and_literature/art\n- film_and_tv/tv\n- food_and_drink/food\n- general_knowledge/gen\n- geography/geo\n- history/hist\n- music/mus\n- science/sci\n- society_and_culture/soc\n- sport_and_culture/sport```")
+
+@bot.command(name="opentdb_help")
+async def opentdbhelp(ctx):
+	await ctx.send("```\nDifficulties:\n- easy/e\n- medium/m\n- hard/h\n\nCategories:\n- general_knowledge/gen\n- books\n- music\n- musicals_and_theatres/theatre\n- television/tv\n- video_games/vg\n- board_games/bg\n- science_and_nature/sci\n- computers/cs\n- mathematics/math\n- mythology/myth\n- sports\n- geography/geo\n- history/hist\n- politics/pol\n- art\n- celebrities/cel\n- animals\n- vehicles\n comics\n- gadgets\n- anime_and_manga/anime/manga\n- cartoons_and_animations/cartoons```")
+
 async def opentdb(ctx, difficulty, category):
 
 	difficulty = difficulty.lower()
 	category = category.lower()
+
+	replacements = {
+		"e": "easy",
+		"m": "medium",
+		"h": "hard",
+		"gen": "general_knowledge",
+		"theatre": "musicals_and_theatres",
+		"tv": "television",
+		"vg": "video_games",
+		"bg": "board_games",
+		"sci": "science_and_nature",
+		"cs": "computers",
+		"math": "mathematics",
+		"myth": "mythology",
+		"geo": "geography",
+		"hist": "history",
+		"pol": "politics",
+		"cel": "celebrities",
+		"anime": "anime_and_manga",
+		"manga": "anime_and_manga",
+		"cartoons": "cartoons_and_animations"
+	}
 
 	valid_difficulties = ["easy", "medium", "hard"]
 	valid_categories = {
@@ -104,7 +134,7 @@ async def opentdb(ctx, difficulty, category):
 
 	return info
 
-@bot.command(name="trivia")
+@bot.command(name="trivia", help="Queries a trivia API. \n\nDifficulty: easy/medium/hard\nCategory: history/music/science/etc, try >triviaapi_help or >opentdb_help for more detail\nAPI: triviaapi/opentdb, defaults to triviaapi, you can abbreviate with the first letter instead of the full word")
 async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 
 	# get from trivia api
