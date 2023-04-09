@@ -20,10 +20,7 @@ async def on_ready():
 # https://opentdb.com/api_config.php
 
 
-@bot.command(name="trivia")
-async def trivia(ctx, difficulty="hard", category="history"):
-
-	# get from trivia api
+async def triviaapi(ctx, difficulty, category):
 
 	difficulty = difficulty.lower()
 	category = category.lower()
@@ -58,6 +55,67 @@ async def trivia(ctx, difficulty="hard", category="history"):
 
 	response = requests.get(f"https://the-trivia-api.com/api/questions?limit=1&categories={category}&difficulty={difficulty}")
 
+	return response.json()[0]
+
+
+async def opentdb(ctx, difficulty, category):
+
+	difficulty = difficulty.lower()
+	category = category.lower()
+
+	valid_difficulties = ["easy", "medium", "hard"]
+	valid_categories = {
+		"general_knowledge": 9, 
+		"books": 10,
+		"film": 11,
+		"music": 12,
+		"musicals_and_theatres": 13,
+		"television": 14,
+		"video_games": 15,
+		"board_games": 16,
+		"science_and_nature": 17,
+		"computers": 18,
+		"mathematics": 19,
+		"mythology": 20,
+		"sports": 21,
+		"geography": 22,
+		"history": 23,
+		"politics": 24,
+		"art": 25,
+		"celebrities": 26,
+		"animals": 27,
+		"vehicles": 28,
+		"comics": 29,
+		"gadgets": 30,
+		"anime_and_manga": 31,
+		"cartoons_and_animations": 32}
+
+	if difficulty not in valid_difficulties or category not in valid_categories:
+		await ctx.send("Sorry, invalid difficulty/category! Please try again :P")
+		return
+
+	categoryNum = valid_categories[category]
+
+	response = requests.get(f"https://opentdb.com/api.php?amount=1&category={categoryNum}&difficulty={difficulty}&type=multiple")
+
+	info = response.json()["results"][0]
+	info['correctAnswer'] = info.pop("correct_answer")
+	info["incorrectAnswers"] = info.pop("incorrect_answers")
+
+	return info
+
+@bot.command(name="trivia")
+async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
+
+	# get from trivia api
+
+	info = {}
+
+	if api == "opentdb" or api == "o":
+		info = await opentdb(ctx, difficulty, category)
+	else:
+		info = await triviaapi(ctx, difficulty, category)
+	
 	# print(response.json())
 	# print(response.json()[0]["question"])
 
@@ -66,15 +124,15 @@ async def trivia(ctx, difficulty="hard", category="history"):
 	category = category.capitalize()
 	difficulty = difficulty.upper()
 
-	correctAnswer = response.json()[0]["correctAnswer"]
+	correctAnswer = info["correctAnswer"]
 
-	answers = response.json()[0]['incorrectAnswers']
+	answers = info['incorrectAnswers']
 	answers.append(correctAnswer)
 	random.shuffle(answers)
 
 	embed = discord.Embed(
 			title=f"{category} ({difficulty})", 
-			description=f"{response.json()[0]['question']}\n\n[1] {answers[0]}\n[2] {answers[1]}\n[3] {answers[2]}\n[4] {answers[3]}")
+			description=f"{info['question']}\n\n[1] {answers[0]}\n[2] {answers[1]}\n[3] {answers[2]}\n[4] {answers[3]}")
 	embed.set_author(name=ctx.message.author.display_name, icon_url=ctx.message.author.avatar)
 	embed.set_footer(text="Type the number of the correct answer.")
 
