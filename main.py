@@ -50,7 +50,7 @@ async def triviaapi(ctx, difficulty, category):
 	valid_categories = ["arts_and_literature", "film_and_tv", "food_and_drink", "general_knowledge", "geography", "history", "music", "science", "society_and_culture", "sport_and_culture"]
 
 	if difficulty not in valid_difficulties or category not in valid_categories:
-		await ctx.send("Sorry, invalid difficulty/category! Please try again :P")
+		# await ctx.send("Sorry, invalid difficulty/category! Please try again :P")
 		return
 
 	response = requests.get(f"https://the-trivia-api.com/api/questions?limit=1&categories={category}&difficulty={difficulty}")
@@ -93,6 +93,11 @@ async def opentdb(ctx, difficulty, category):
 		"cartoons": "cartoons_and_animations"
 	}
 
+	if difficulty in replacements.keys():
+		difficulty = replacements[difficulty]
+	if category in replacements.keys():
+		category = replacements[category]
+
 	valid_difficulties = ["easy", "medium", "hard"]
 	valid_categories = {
 		"general_knowledge": 9, 
@@ -121,7 +126,7 @@ async def opentdb(ctx, difficulty, category):
 		"cartoons_and_animations": 32}
 
 	if difficulty not in valid_difficulties or category not in valid_categories:
-		await ctx.send("Sorry, invalid difficulty/category! Please try again :P")
+		# await ctx.send("Sorry, invalid difficulty/category! Please try again :P")
 		return
 
 	categoryNum = valid_categories[category]
@@ -145,7 +150,13 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 		info = await opentdb(ctx, difficulty, category)
 	else:
 		info = await triviaapi(ctx, difficulty, category)
+		if (info == None):
+			info = await opentdb(ctx, difficulty, category)
 	
+	if info == None:
+		await ctx.send("Sorry, invalid category/difficulty! Please try again :P")
+		return
+
 	# print(response.json())
 	# print(response.json()[0]["question"])
 
