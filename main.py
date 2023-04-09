@@ -15,13 +15,39 @@ bot = commands.Bot(command_prefix=">", intents=discord.Intents.all())
 async def on_ready():
 	print(f"Logged in as: {bot.user.name} - {bot.user.id}\nVersion: {discord.__version__}\n")
 
+
+# alternative trivia api:
+# https://opentdb.com/api_config.php
+
+
 @bot.command(name="trivia")
-async def trivia(ctx, difficulty, category):
+async def trivia(ctx, difficulty="hard", category="history"):
 
 	# get from trivia api
 
 	difficulty = difficulty.lower()
 	category = category.lower()
+
+	replacements = {
+		"e": "easy",
+		"m": "medium",
+		"h": "hard",
+		"al": "arts_and_literature",
+		"ft": "films_and_tv",
+		"fd": "food_and_drink",
+		"gk": "general_knowledge",
+		"geo": "geography",
+		"hist": "history",
+		"mus": "music",
+		"sci": "science",
+		"soc": "society_and_culture",
+		"sports": "sport_and_culture"
+	}
+
+	if difficulty in replacements.keys():
+		difficulty = replacements[difficulty]
+	if category in replacements.keys():
+		category = replacements[category]
 
 	valid_difficulties = ["easy", "medium", "hard"]
 	valid_categories = ["arts_and_literature", "film_and_tv", "food_and_drink", "general_knowledge", "geography", "history", "music", "science", "society_and_culture", "sport_and_culture"]
@@ -73,7 +99,6 @@ async def trivia(ctx, difficulty, category):
 		await ctx.send("✅ Correct!")
 	else:
 		await ctx.send(f"❌ Incorrect! The correct answer is **[{answers.index(correctAnswer)+1}] {correctAnswer}**")
-
 
 
 bot.run(TOKEN)
