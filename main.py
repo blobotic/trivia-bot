@@ -2,6 +2,7 @@ import os
 import requests
 import random
 import asyncio
+import sqlite3
 import discord
 from discord.ext import commands
 
@@ -9,6 +10,14 @@ with open("token.txt", "r") as f:
 	TOKEN = f.read().rstrip()
 
 bot = commands.Bot(command_prefix=">", intents=discord.Intents.all())
+
+
+# sqlite3
+
+con = sqlite3.connect("trivia_users.db")
+cur = con.cursor()
+
+
 
 
 @bot.event
@@ -164,8 +173,19 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 		await ctx.send("Sorry, invalid category/difficulty! Please try again :P")
 		return
 
-	# print(response.json())
-	# print(response.json()[0]["question"])
+
+	# update total count
+
+	# if the user isn't already in the table
+	res = cur.execute(f"SELECT id FROM users WHERE id={ctx.message.author.id}").fetchone()
+	# print(res.fetchone())
+	if res == None:
+		# print(res.fetchone())
+		cur.execute(f"INSERT INTO users (id, correct, total) VALUES ({ctx.message.author.id}, 0, 0)")
+	# cur.execute(f"REPLACE INTO users (id, correct, total) VALUES ({ctx.message.author.id}, 0, 0) ON DUPLICATE KEY UPDATE total = total")
+	cur.execute(f"UPDATE users SET total = total + 1 WHERE id={ctx.message.author.id}")
+	con.commit()
+
 
 	# format + send embed
 
@@ -180,7 +200,8 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 
 	embed = discord.Embed(
 			title=f"{category} ({difficulty})", 
-			description=f"{info['question']}\n\n[1] {answers[0]}\n[2] {answers[1]}\n[3] {answers[2]}\n[4] {answers[3]}")
+			description=f"{info['question']}\n\n[1] {answers[0]}\n[2] {answers[1]}\n[3] {answers[2]}\n[4] {answers[3]}",
+			color=discord.Color.red())
 	embed.set_author(name=ctx.message.author.display_name, icon_url=ctx.message.author.avatar)
 	embed.set_footer(text="Type the number of the correct answer.")
 
@@ -194,9 +215,9 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 		return msg.author == ctx.author and msg.channel == ctx.channel and msg.content in ["1", "2", "3", "4"]
 	
 	try:
-		msg = await bot.wait_for("message", check=check, timeout=10)
+		msg = await bot.wait_for("message", check=check, timeout=20)
 	except asyncio.TimeoutError:
-		await ctx.send("Sorry, reply faster next time :P")
+		await ctx.send(f"Sorry, reply faster next time :P\n\nThe correct answer is **[{answers.index(correctAnswer+1)}] {correctAnswer}**")
 		user_trivia_list.remove(ctx.message.author.id)
 		return
 
@@ -206,10 +227,38 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 
 	if (answers[userAns-1] == correctAnswer):
 		await ctx.send("✅ Correct!")
+
+		# update correct total
+		cur.execute(f"UPDATE users SET correct = correct + 1 WHERE id={ctx.message.author.id}")
+		con.commit()
 	else:
 		await ctx.send(f"❌ Incorrect! The correct answer is **[{answers.index(correctAnswer)+1}] {correctAnswer}**")
 
 	user_trivia_list.remove(ctx.message.author.id)
+
+
+# potentially: add the rank of the query-er?
+# too lazy atm (4/10)
+
+@bot.command(name="lb")
+async def leaderboard(ctx):
+	res = cur.execute(f"SELECT DENSE_RANK() OVER (ORDER BY correct DESC) as rank, id, correct, total FROM users").fetchall()
+	# print(res)
+
+	embed = discord.Embed(title="Trivia Leaderboard", description="Ordered by |{# correct}|.", color=discord.Color.green())
+	for i in range(min(5, len(res))):
+		user = bot.get_user(res[i][1])
+		embed.add_field(name=f"{i+1}. {user.name} - {res[i][2]} correct, {res[i][3]} total", value="", inline=False)
+
+	await ctx.send(embed=embed)
+
+
+
+
+@bot.command(name="close")
+async def close(ctx):
+	if ctx.message.author.id == 290534911276744704:
+		con.close()
 
 
 bot.run(TOKEN)
