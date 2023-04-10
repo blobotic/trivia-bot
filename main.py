@@ -19,6 +19,9 @@ async def on_ready():
 # alternative trivia api:
 # https://opentdb.com/api_config.php
 
+user_trivia_list = []
+
+
 
 async def triviaapi(ctx, difficulty, category):
 
@@ -142,6 +145,10 @@ async def opentdb(ctx, difficulty, category):
 @bot.command(name="trivia", help="Queries a trivia API. \n\nDifficulty: easy/medium/hard\nCategory: history/music/science/etc, try >triviaapi_help or >opentdb_help for more detail\nAPI: triviaapi/opentdb, defaults to triviaapi, you can abbreviate with the first letter instead of the full word")
 async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 
+	if ctx.message.author.id in user_trivia_list:
+		await ctx.send("Sorry, you have another trivia currently running! Please wait.")
+		return
+
 	# get from trivia api
 
 	info = {}
@@ -179,6 +186,8 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 
 	await ctx.send(embed=embed)
 
+	user_trivia_list.append(ctx.message.author.id)
+
 	# get user input
 
 	def check(msg):
@@ -188,6 +197,7 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 		msg = await bot.wait_for("message", check=check, timeout=10)
 	except asyncio.TimeoutError:
 		await ctx.send("Sorry, reply faster next time :P")
+		user_trivia_list.remove(ctx.message.author.id)
 		return
 
 	userAns = int(msg.content)
@@ -198,6 +208,8 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 		await ctx.send("✅ Correct!")
 	else:
 		await ctx.send(f"❌ Incorrect! The correct answer is **[{answers.index(correctAnswer)+1}] {correctAnswer}**")
+
+	user_trivia_list.remove(ctx.message.author.id)
 
 
 bot.run(TOKEN)
