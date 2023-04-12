@@ -28,7 +28,7 @@ async def on_ready():
 # alternative trivia api:
 # https://opentdb.com/api_config.php
 
-user_trivia_list = []
+user_trivia_list = {}
 
 
 
@@ -154,9 +154,10 @@ async def opentdb(ctx, difficulty, category):
 @bot.command(name="trivia", help="Queries a trivia API. \n\nDifficulty: easy/medium/hard\nCategory: history/music/science/etc, try >triviaapi_help or >opentdb_help for more detail\nAPI: triviaapi/opentdb, defaults to triviaapi, you can abbreviate with the first letter instead of the full word")
 async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 
-	if ctx.message.author.id in user_trivia_list:
-		await ctx.send("Sorry, you have another trivia currently running! Please wait.")
-		return
+	if str(ctx.message.author.id) in user_trivia_list.keys():
+		if user_trivia_list[str(ctx.message.author.id)]:
+			await ctx.send("Sorry, you have another trivia currently running! Please wait.")
+			return
 
 	# get from trivia api
 
@@ -207,7 +208,7 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 
 	await ctx.send(embed=embed)
 
-	user_trivia_list.append(ctx.message.author.id)
+	user_trivia_list[str(ctx.message.author.id)] = True
 
 	# get user input
 
@@ -218,7 +219,7 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 		msg = await bot.wait_for("message", check=check, timeout=20)
 	except asyncio.TimeoutError:
 		await ctx.send(f"Sorry, reply faster next time :P\n\nThe correct answer is **[{answers.index(correctAnswer+1)}] {correctAnswer}**")
-		user_trivia_list.remove(ctx.message.author.id)
+		user_trivia_list[str(ctx.message.author.id)] = False
 		return
 
 	userAns = int(msg.content)
@@ -234,7 +235,7 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 	else:
 		await ctx.send(f"❌ Incorrect! The correct answer is **[{answers.index(correctAnswer)+1}] {correctAnswer}**")
 
-	user_trivia_list.remove(ctx.message.author.id)
+	user_trivia_list[str(ctx.message.author.id)] = False
 
 
 # potentially: add the rank of the query-er?
@@ -252,6 +253,24 @@ async def leaderboard(ctx):
 
 	await ctx.send(embed=embed)
 
+# my impl: 
+# actual command reserved for allen lol
+
+# @bot.command(name="reset")
+# async def reset_score(ctx):
+
+# 	def check(msg):
+# 	return msg.author == ctx.author and msg.channel == ctx.channel and msg.content in ["yes", "no"]
+
+# 	try: 
+# 		await ctx.send("Are you sure you want to reset your stats? Type yes/no.")
+# 		msg = await bot.wait_for("message", check=check, timeout=10)
+# 	except asyncio.TimeoutError:
+# 		await ctx.send("Cancelled reset.")
+# 		return
+
+# 	cur.execute(f"UPDATE users SET correct = 0, total = 0 WHERE id={ctx.message.author.id}")
+# 	con.commit()
 
 
 
