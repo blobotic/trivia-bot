@@ -259,6 +259,11 @@ async def leaderboard(ctx):
 async def close(ctx):
 	if ctx.message.author.id == 290534911276744704:
 		con.close()
-
+@bot.command(name="reset")
+async def reset(ctx):
+	cur.execute(f"UPDATE users SET correct = 0 WHERE id={ctx.message.author.id}")
+	cur.execute(f"UPDATE users SET total = 0 WHERE id={ctx.message.author.id}")
+	con.commit()
+	await ctx.send("Successfully reset your score.")
 
 bot.run(TOKEN)
