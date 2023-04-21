@@ -61,6 +61,11 @@ async def triviaapi(ctx, difficulty, category):
 	valid_difficulties = ["easy", "medium", "hard"]
 	valid_categories = ["arts_and_literature", "film_and_tv", "food_and_drink", "general_knowledge", "geography", "history", "music", "science", "society_and_culture", "sport_and_culture"]
 
+	# say you only pass in a category
+	if difficulty in valid_categories:
+		category = difficulty
+		difficulty = "hard"
+
 	if difficulty not in valid_difficulties or category not in valid_categories:
 		# await ctx.send("Sorry, invalid difficulty/category! Please try again :P")
 		return
@@ -70,13 +75,13 @@ async def triviaapi(ctx, difficulty, category):
 	return response.json()[0]
 
 
-@bot.command(name="triviaapi_help")
+@bot.command(name="triviaapi_help", aliases=["th"])
 async def triviaapihelp(ctx):
 	await ctx.send("```Difficulties:\n- easy/e\n- medium/m\n- hard/h\n\nCategories:\n- arts_and_literature/art\n- film_and_tv/tv\n- food_and_drink/food\n- general_knowledge/gen\n- geography/geo\n- history/hist\n- music/mus\n- science/sci\n- society_and_culture/soc\n- sport_and_culture/sport```")
 
-@bot.command(name="opentdb_help")
+@bot.command(name="opentdb_help", aliases=["oh"])
 async def opentdbhelp(ctx):
-	await ctx.send("```\nDifficulties:\n- easy/e\n- medium/m\n- hard/h\n\nCategories:\n- general_knowledge/gen\n- books\n- music\n- musicals_and_theatres/theatre\n- television/tv\n- video_games/vg\n- board_games/bg\n- science_and_nature/sci\n- computers/cs\n- mathematics/math\n- mythology/myth\n- sports\n- geography/geo\n- history/hist\n- politics/pol\n- art\n- celebrities/cel\n- animals\n- vehicles\n comics\n- gadgets\n- anime_and_manga/anime/manga\n- cartoons_and_animations/cartoons```")
+	await ctx.send("```\nDifficulties:\n- easy/e\n- medium/m\n- hard/h\n\nCategories:\n- general_knowledge/gen\n- books\n- music\n- musicals_and_theatres/theatre\n- television/tv\n- video_games/vg\n- board_games/bg\n- science_and_nature/sci\n- computers/cs\n- mathematics/math\n- mythology/myth\n- sports\n- geography/geo\n- history/hist\n- politics/pol\n- art\n- celebrities/cel\n- animals\n- vehicles\n- comics\n- gadgets\n- anime_and_manga/anime/manga\n- cartoons_and_animations/cartoons```")
 
 async def opentdb(ctx, difficulty, category):
 
@@ -137,6 +142,11 @@ async def opentdb(ctx, difficulty, category):
 		"anime_and_manga": 31,
 		"cartoons_and_animations": 32}
 
+	# say you only pass in a category
+	if difficulty in valid_categories:
+		category = difficulty
+		difficulty = "hard"
+
 	if difficulty not in valid_difficulties or category not in valid_categories:
 		# await ctx.send("Sorry, invalid difficulty/category! Please try again :P")
 		return
@@ -190,8 +200,8 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 
 	# format + send embed
 
-	category = category.capitalize()
-	difficulty = difficulty.upper()
+	category = info["category"].title()
+	difficulty = info["difficulty"].upper()
 
 	correctAnswer = info["correctAnswer"]
 
@@ -217,8 +227,8 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 	
 	try:
 		msg = await bot.wait_for("message", check=check, timeout=20)
-	except asyncio.TimeoutError:
-		await ctx.send(f"Sorry, reply faster next time :P\n\nThe correct answer is **[{answers.index(correctAnswer+1)}] {correctAnswer}**")
+	except:
+		await ctx.send(f"Sorry, reply faster next time :P\n\nThe correct answer is **[{answers.index(correctAnswer)+1}] {correctAnswer}**")
 		user_trivia_list[str(ctx.message.author.id)] = False
 		return
 
@@ -245,13 +255,64 @@ async def trivia(ctx, difficulty="hard", category="history", api="trivia"):
 async def leaderboard(ctx):
 	res = cur.execute(f"SELECT DENSE_RANK() OVER (ORDER BY correct DESC) as rank, id, correct, total FROM users").fetchall()
 	# print(res)
+	
+	top5 = []
 
-	embed = discord.Embed(title="Trivia Leaderboard", description="Ordered by |{# correct}|.", color=discord.Color.green())
+	embed = discord.Embed(title="Trivia Leaderboard", description="Ordered by # correct.", color=discord.Color.green())
 	for i in range(min(5, len(res))):
 		user = bot.get_user(res[i][1])
 		embed.add_field(name=f"{i+1}. {user.name} - {res[i][2]} correct, {res[i][3]} total", value="", inline=False)
+		top5.append(res[i][1])
+
+	# if ctx.message.author.id not in top5:
+	# 	res2 = cur.execute(f"SELECT * FROM users WHERE id={ctx.message.author.id}").fetchone()
+	# 	embed.add_field(name=f"")
+
+	# print(res)
+	# print([i for i, v in enumerate(res) if v[1] == ctx.message.author.id])
+
+	if ctx.message.author.id not in top5:
+		posA = [i for i, v in enumerate(res) if v[1] == ctx.message.author.id]
+		item = res[posA[0]]
+		user = bot.get_user(item[1])
+		embed.add_field(name=f"{item[0]}. {user.name} - {item[2]} correct, {item[3]} total", value="", inline=False)
+
 
 	await ctx.send(embed=embed)
+
+@bot.command(name="lb2")
+async def leaderboard2(ctx):
+	res = cur.execute(f"SELECT DENSE_RANK() OVER (ORDER BY (((total+10)*100)/((correct+1)))) as rank, id, correct, total FROM users").fetchall()
+	print(res)
+	
+	top5 = []
+
+	embed = discord.Embed(title="Trivia Leaderboard", description="Ordered by (correct+1)/(total+10).", color=discord.Color.green())
+	for i in range(min(5, len(res))):
+		user = bot.get_user(res[i][1])
+		embed.add_field(name=f"{i+1}. {user.name} - {res[i][2]} correct, {res[i][3]} total", value="", inline=False)
+		top5.append(res[i][1])
+
+	# if ctx.message.author.id not in top5:
+	# 	res2 = cur.execute(f"SELECT * FROM users WHERE id={ctx.message.author.id}").fetchone()
+	# 	embed.add_field(name=f"")
+
+	# print(res)
+	# print([i for i, v in enumerate(res) if v[1] == ctx.message.author.id])
+
+	if ctx.message.author.id not in top5:
+		posA = [i for i, v in enumerate(res) if v[1] == ctx.message.author.id]
+		item = res[posA[0]]
+		user = bot.get_user(item[1])
+		embed.add_field(name=f"{item[0]}. {user.name} - {item[2]} correct, {item[3]} total", value="", inline=False)
+
+
+	await ctx.send(embed=embed)
+
+@bot.command(name="close")
+async def close(ctx):
+	if ctx.message.author.id == 290534911276744704:
+		con.close()
 
 # my impl: 
 # actual command reserved for allen lol
@@ -273,11 +334,6 @@ async def leaderboard(ctx):
 # 	con.commit()
 
 
-
-@bot.command(name="close")
-async def close(ctx):
-	if ctx.message.author.id == 290534911276744704:
-		con.close()
 @bot.command(name="reset")
 async def reset(ctx):
 	cur.execute(f"UPDATE users SET correct = 0, total = 0 WHERE id={ctx.message.author.id}")
